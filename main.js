@@ -13,7 +13,6 @@ const DATA_FILE = path.join(app.getPath('userData'), 'tab_sessions.json');
 const SETTINGS_FILE = path.join(app.getPath('userData'), 'app_settings.json');
 let settingsWindow = null;
 
-// --- PERSISTENCE HELPERS ---
 function loadSavedSessions() {
   try {
     if (fs.existsSync(DATA_FILE)) {
@@ -56,7 +55,6 @@ function saveAppSettings() {
   }
 }
 
-// --- WINDOW MANAGEMENT ---
 function createWindow() {
   loadAppSettings();
   mainWindow = new BrowserWindow({
@@ -308,7 +306,6 @@ function notifyUI() {
   mainWindow.webContents.send('render-tabs', { accounts: tabData, activeId: activeAccountId, navbarMode });
 }
 
-// --- IPC HANDLERS ---
 ipcMain.on('add-tab', () => {
   const nextNum = accounts.length + 1;
   addAccount(`Account ${nextNum}`);
@@ -347,7 +344,6 @@ ipcMain.on('open-github', () => {
   shell.openExternal('https://github.com/SoulDevOfficial/SwitchCord');
 });
 
-// --- APP LIFECYCLE ---
 app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {

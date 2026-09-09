@@ -1,0 +1,5 @@
+This program allows you to run multiple discord accounts at the same time rather than separately like Discord's built in feature. Though I did try and optimize it a bit, I am quite new to making desktop apps so I am still learning the best practices for things. It works like chrome tabs but split among several instances so each account is separate and can be online and running without having to constantly log in and out of them.
+
+Though this doesn't nessisarily break Discord's Terms Of Service as of writing this, it is important to understand that you will be running mulitple accounts at the same time and thus multiple sessions. The more you run, the more resources from your device will be used. You run the same risks as using Discord reguarly except compounded to multiple accounts which is to be expected.
+
+A proper installer will be provided soon as of writing this or you can choose to build it yourself with the individually provided files. I, nor this project, are affiliated with Discord. Use this project at your own risk.
