@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>SwitchCord</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: #17191d;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif;
+      overflow: hidden;
+    }
+
+    :root {
+      --chrome-surface: #22262c;
+      --chrome-control: #2d333b;
+      --chrome-hover: #39414b;
+      --chrome-active: #78c7b5;
+      --chrome-warm: #e58b62;
+      --chrome-text: #f1f4f3;
+      --chrome-muted: #9da7ad;
+      --chrome-line: rgba(255, 255, 255, 0.08);
+    }
+
+    #title-bar {
+      display: flex;
+      align-items: center;
+      background: var(--chrome-surface);
+      height: 34px;
+      padding: 0 140px 0 8px;
+      user-select: none;
+      -webkit-app-region: drag;
+      box-shadow: 0 1px 0 var(--chrome-line);
+    }
+
+    #title-bar.sidebar {
+      position: fixed;
+      z-index: 10;
+      top: 0;
+      left: 0;
+      width: 44px;
+      height: 100%;
+      padding: 34px 5px 12px;
+      flex-direction: column;
+      justify-content: flex-start;
+      gap: 16px;
+    }
+
+    #title-bar.sidebar::after {
+      content: "";
+      position: fixed;
+      z-index: 0;
+      top: 0;
+      left: 44px;
+      right: 0;
+      height: 34px;
+      background: var(--chrome-surface);
+      pointer-events: none;
+    }
+
+    #title-bar.sidebar .brand-section {
+      z-index: 12;
+      margin: 0;
+      flex-direction: column;
+      gap: 0;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 44px;
+      height: 34px;
+      background: var(--chrome-surface);
+      justify-content: center;
+      overflow: visible;
+    }
+
+    #title-bar.sidebar .brand-label,
+    #title-bar.sidebar .brand-compact { display: none; }
+
+    #title-bar.sidebar #tabs-container {
+      position: fixed;
+      z-index: 11;
+      top: 34px;
+      left: 0;
+      flex-direction: column;
+      width: 44px;
+      height: calc(100% - 34px);
+      padding: 8px 5px 12px;
+      max-width: none;
+      gap: 10px;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+
+    #title-bar.sidebar .tab {
+      position: relative;
+      min-width: 28px;
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      justify-content: center;
+      border-radius: 50%;
+    }
+
+    #title-bar.sidebar .tab-title {
+      flex-grow: 0;
+      max-width: 16px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 10px;
+    }
+
+    #title-bar.sidebar .tab-avatar,
+    #title-bar.sidebar .discord-fallback {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+    }
+
+    #title-bar.sidebar .tab-avatar {
+      display: block;
+      object-fit: cover;
+    }
+
+    #title-bar.sidebar .discord-fallback {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--chrome-active);
+      color: #fff;
+    }
+
+    #title-bar.sidebar .discord-fallback svg {
+      width: 17px;
+      height: 17px;
+      fill: currentColor;
+    }
+
+    #title-bar.sidebar .close-btn {
+      display: none;
+      position: absolute;
+      inset: 0;
+      margin: 0;
+      padding: 0;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: var(--chrome-warm);
+      color: #fff;
+      font-size: 10px;
+    }
+
+    #title-bar.sidebar .tab.active:hover .tab-title { visibility: hidden; }
+    #title-bar.sidebar .tab.active:hover .tab-avatar,
+    #title-bar.sidebar .tab.active:hover .discord-fallback { visibility: hidden; }
+    #title-bar.sidebar .tab.active:hover .close-btn {
+      display: flex;
+    }
+
+    #title-bar.sidebar #add-tab-btn {
+      width: 24px;
+      margin: 0;
+      flex: 0 0 auto;
+      min-height: 24px;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-right: 12px;
+      width: 28px;
+      height: 30px;
+      -webkit-app-region: no-drag;
+    }
+
+    .brand-label,
+    .brand-compact {
+      color: var(--chrome-text);
+      cursor: pointer;
+      font-family: "Cooper Black", "Bookman Old Style", Georgia, serif;
+      font-weight: 900;
+      user-select: none;
+    }
+
+    .brand-label {
+      display: inline;
+      font-size: 15px;
+      letter-spacing: 0.2px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .brand-compact {
+      display: none;
+      font-size: 12px;
+      letter-spacing: -0.4px;
+      line-height: 1;
+    }
+
+    .brand-label:hover,
+    .brand-compact:hover { color: var(--chrome-active); }
+
+    #title-bar:not(.sidebar) .brand-section::after {
+      content: "|";
+      margin-left: 4px;
+      color: var(--chrome-muted);
+      font-size: 16px;
+      font-weight: 400;
+      line-height: 1;
+      opacity: 0.65;
+    }
+
+    #app-icon {
+      display: block;
+      width: 26px;
+      height: 26px;
+      object-fit: contain;
+      padding: 2px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.15s;
+    }
+
+    #app-icon:hover {
+      background: var(--chrome-hover);
+      transform: scale(1.05);
+    }
+
+    .icon-link-btn {
+      background: transparent;
+      border: none;
+      color: #949ba4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 2px;
+      border-radius: 4px;
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .icon-link-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .icon-link-btn svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    #tabs-container {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      position: static;
+      width: auto;
+      height: 34px;
+      max-width: none;
+      padding: 4px 8px;
+      flex: 1 1 auto;
+      min-width: 0;
+      background: transparent;
+    }
+
+    #title-bar:not(.sidebar) #tabs-container {
+      -webkit-app-region: no-drag;
+    }
+
+    .tab {
+      display: flex;
+      align-items: center;
+      background: var(--chrome-control);
+      height: 25px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--chrome-muted);
+      max-width: 160px;
+      min-width: 110px;
+      justify-content: space-between;
+      transition: background 0.15s, color 0.15s;
+      -webkit-app-region: no-drag;
+    }
+
+    .tab:hover { background: var(--chrome-hover); color: var(--chrome-text); }
+    .tab.active { background: var(--chrome-active); color: #fff; font-weight: 600; }
+
+    .tab-title {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex-grow: 1;
+    }
+
+    .tab-rename-input {
+      background: #17191d;
+      border: 1px solid var(--chrome-active);
+      color: #fff;
+      font-size: 12px;
+      border-radius: 3px;
+      padding: 1px 4px;
+      width: 100%;
+      outline: none;
+    }
+
+    .close-btn {
+      margin-left: 6px;
+      font-size: 11px;
+      color: var(--chrome-muted);
+      border-radius: 50%;
+      padding: 2px 5px;
+      line-height: 1;
+    }
+
+    .close-btn:hover { background: rgba(255,255,255,0.2); color: #fff; }
+
+    #add-tab-btn {
+      background: var(--chrome-control);
+      color: var(--chrome-text);
+      border: none;
+      min-width: 24px;
+      height: 24px;
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 18px;
+      margin-left: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+      -webkit-app-region: no-drag;
+    }
+
+    #title-bar:not(.sidebar) #add-tab-btn {
+      flex: 0 0 auto;
+      margin-left: 0;
+    }
+
+    #add-tab-btn:hover { background: var(--chrome-active); color: #fff; }
+
+    #title-bar.sidebar + #error-banner { z-index: 1000000; }
+
+    #error-banner {
+      display: none;
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #e58b62;
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 12px;
+      z-index: 1000000;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div id="title-bar">
+    <div class="brand-section">
+      <img id="app-icon" src="favicon-256.png" alt="Open SwitchCord settings" title="SwitchCord settings" />
+    </div>
+
+    <div id="tabs-container"></div>
+  </div>
+
+  <div id="error-banner"></div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    let currentNavbarMode = 'sidebar';
+
+    function openGitHub() {
+      ipcRenderer.send('open-github');
+    }
+
+    function applyNavbarMode(mode) {
+      document.getElementById('title-bar').classList.toggle('sidebar', mode === 'sidebar');
+    }
+
+    function showError(msg) {
+      const banner = document.getElementById('error-banner');
+      banner.innerText = msg;
+      banner.style.display = 'block';
+      setTimeout(() => { banner.style.display = 'none'; }, 4000);
+    }
+
+    function addNewTab() {
+      ipcRenderer.send('add-tab');
+    }
+
+    function createAddButton() {
+      const button = document.createElement('button');
+      button.id = 'add-tab-btn';
+      button.type = 'button';
+      button.title = 'Add Discord Account';
+      button.innerText = '+';
+      button.onclick = addNewTab;
+      return button;
+    }
+
+    function startRenaming(tabElement, acc) {
+      const titleSpan = tabElement.querySelector('.tab-title');
+      const currentName = acc.name;
+
+      if (currentNavbarMode === 'sidebar') {
+        const newName = prompt('Rename account', currentName);
+        if (newName && newName.trim() && newName.trim() !== currentName) {
+          ipcRenderer.send('rename-tab', { id: acc.id, name: newName.trim() });
+        }
+        return;
+      }
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'tab-rename-input';
+      input.value = currentName;
+
+      // Prevent switching tabs when clicking inside the input
+      input.onclick = (e) => e.stopPropagation();
+
+      const saveRename = () => {
+        const newName = input.value.trim();
+        if (newName && newName !== currentName) {
+          ipcRenderer.send('rename-tab', { id: acc.id, name: newName });
+        } else {
+          titleSpan.innerText = currentName;
+          titleSpan.style.display = 'inline';
+          input.remove();
+        }
+      };
+
+      input.onblur = saveRename;
+      input.onkeydown = (e) => {
+        if (e.key === 'Enter') saveRename();
+        if (e.key === 'Escape') {
+          titleSpan.innerText = currentName;
+          titleSpan.style.display = 'inline';
+          input.remove();
+        }
+      };
+
+      titleSpan.style.display = 'none';
+      tabElement.insertBefore(input, tabElement.querySelector('.close-btn'));
+      input.focus();
+      input.select();
+    }
+
+    document.querySelector('.brand-section').onclick = () => ipcRenderer.send('open-settings');
+    applyNavbarMode(currentNavbarMode);
+    ipcRenderer.send('set-navbar-mode', currentNavbarMode);
+
+    ipcRenderer.on('render-tabs', (event, { accounts, activeId, navbarMode }) => {
+      if (navbarMode) {
+        currentNavbarMode = navbarMode;
+        applyNavbarMode(navbarMode);
+      }
+      const container = document.getElementById('tabs-container');
+      container.innerHTML = '';
+
+      accounts.forEach((acc, index) => {
+        const tab = document.createElement('div');
+        tab.className = `tab ${acc.id === activeId ? 'active' : ''}`;
+        tab.title = currentNavbarMode === 'sidebar' ? `${acc.name} (double-click to rename)` : acc.name;
+        tab.onclick = () => ipcRenderer.send('switch-tab', acc.id);
+        
+        // Double-click to rename tab
+        tab.ondblclick = (e) => {
+          e.stopPropagation();
+          startRenaming(tab, acc);
+        };
+
+        const title = document.createElement('span');
+        title.className = 'tab-title';
+        title.innerText = acc.name;
+        title.title = "Double-click to rename";
+
+        if (currentNavbarMode === 'sidebar') {
+          if (acc.avatarUrl) {
+            const avatar = document.createElement('img');
+            avatar.className = 'tab-avatar';
+            avatar.src = acc.avatarUrl;
+            avatar.alt = `${acc.name} avatar`;
+            avatar.onerror = () => {
+              avatar.replaceWith(createDiscordFallback());
+            };
+            tab.appendChild(avatar);
+          } else {
+            tab.appendChild(createDiscordFallback());
+          }
+        }
+
+        const closeBtn = document.createElement('span');
+        closeBtn.className = 'close-btn';
+        closeBtn.innerText = '✕';
+        closeBtn.onclick = (e) => {
+          e.stopPropagation();
+          ipcRenderer.send('remove-tab', acc.id);
+        };
+
+        if (currentNavbarMode !== 'sidebar') tab.appendChild(title);
+        tab.appendChild(closeBtn);
+        container.appendChild(tab);
+      });
+
+      container.appendChild(createAddButton());
+    });
+
+    function createDiscordFallback() {
+      const fallback = document.createElement('span');
+      fallback.className = 'discord-fallback';
+      fallback.title = 'Discord account';
+      fallback.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.54 5.64A16.9 16.9 0 0 0 15.3 4l-.52 1.06a15.7 15.7 0 0 0-5.56 0L8.7 4a16.9 16.9 0 0 0-4.24 1.64C1.78 9.73 1.05 13.72 1.42 17.66a17.1 17.1 0 0 0 5.2 2.64l1.26-1.72c-.69-.25-1.35-.56-1.96-.93l.48-.37c3.78 1.77 7.88 1.77 11.61 0l.48.37c-.61.37-1.27.68-1.96.93l1.26 1.72a17.1 17.1 0 0 0 5.2-2.64c.43-4.57-.73-8.52-3.45-12.02ZM8.02 15.1c-1.14 0-2.08-1.05-2.08-2.34s.92-2.35 2.08-2.35 2.1 1.05 2.08 2.35c0 1.29-.92 2.34-2.08 2.34Zm7.96 0c-1.14 0-2.08-1.05-2.08-2.34s.92-2.35 2.08-2.35 2.1 1.05 2.08 2.35c0 1.29-.92 2.34-2.08 2.34Z"/></svg>';
+      return fallback;
+    }
+
+    ipcRenderer.on('app-error', (event, msg) => showError(msg));
+  </script>
+</body>
+</html>
